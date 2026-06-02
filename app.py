@@ -38,8 +38,10 @@ if os.path.exists("./chroma_db"):
                 
                 with st.expander("📄 Source chunks"):
                     for i, chunk in enumerate(chunks):
-                        st.markdown(f"**Chunk {i+1}:**")
+                        title = chunk.metadata.get("title", "Unknown")
+                        st.markdown(f"**[{i+1}] {title}**")
                         st.write(chunk.page_content)
+                        st.divider()
         
         st.session_state.messages.append({"role": "assistant", "content": answer})
 
@@ -48,5 +50,5 @@ else:
     if st.button("Build Knowledge Base"):
         from src.ingest import build_vectorstore
         with st.spinner("Fetching papers from PubMed..."):
-            build_vectorstore("cell type classification gene expression single cell")
+            build_vectorstore()
             st.success("Done! Please refresh the page.")

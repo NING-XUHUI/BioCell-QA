@@ -8,7 +8,6 @@ import os
 Entrez.email = "your@email.com"
 
 def fetch_pubmed_papers(query: str, max_results: int = 50):
-    """从PubMed抓取论文摘要"""
     handle = Entrez.esearch(db="pubmed", term=query, retmax=max_results)
     record = Entrez.read(handle)
     ids = record["IdList"]
@@ -20,8 +19,8 @@ def fetch_pubmed_papers(query: str, max_results: int = 50):
     for r in records:
         title = r.get("TI", "")
         abstract = r.get("AB", "")
-        if abstract and len(abstract) > 100:  # 过滤掉没有摘要或摘要过短的论文
-            papers.append(f"Title: {title}\n\nAbstract: {abstract}")
+        if abstract and len(abstract) > 100:
+            papers.append({"title": title, "abstract": abstract})
     
     return papers
 
@@ -42,23 +41,34 @@ def build_vectorstore(persist_dir: str = "./chroma_db"):
 ]
     
     all_papers = []
-    seen = set()
-    
+    seen_titles = set()
+
     for query in queries:
         print(f"Fetching: {query}")
         papers = fetch_pubmed_papers(query, max_results=50)
         for paper in papers:
-            if paper not in seen:
-                seen.add(paper)
+            if paper["title"] not in seen_titles:
+                seen_titles.add(paper["title"])
                 all_papers.append(paper)
-    
+
     print(f"Total unique papers: {len(all_papers)}")
-    
+
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=100
     )
-    chunks = splitter.create_documents(all_papers)
+
+    # 把标题存为metadata
+    docs = []
+    for paper in all_papers:
+        chunks = splitter.create_documents(
+            texts=[paper["abstract"]],
+            metadatas=[{"title": paper["title"]}]
+    )
+        docs.extend(chunks)
+
+    chunks = docs
+    
     print(f"Total chunks: {len(chunks)}")
     
     embeddings = HuggingFaceEmbeddings(
