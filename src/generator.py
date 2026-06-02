@@ -9,30 +9,29 @@ client = OpenAI(
     base_url="https://api.deepseek.com"
 )
 
-def generate_answer(question: str, context_chunks: list) -> str:
-    """基于检索到的论文片段生成回答"""
+def generate_answer(question: str, context_chunks: list, history: list = []) -> str:
     
-    # 把所有检索到的片段拼成context
     context = "\n\n---\n\n".join([chunk.page_content for chunk in context_chunks])
     
-    prompt = f"""You are a biomedical research assistant specializing in cell biology and gene expression.
-    
-Answer the following question based on the provided research literature. 
+    system_prompt = """You are a biomedical research assistant specializing in cell biology and gene expression.
+Answer questions based on the provided research literature.
 Always cite which part of the context supports your answer.
 If the context doesn't contain enough information, say so clearly.
+Please respond in Chinese."""
 
-Context from research papers:
-{context}
-
-Question: {question}
-
-Answer:"""
-
+    messages = [{"role": "system", "content": system_prompt}]
+    
+    for msg in history:
+        messages.append({"role": msg["role"], "content": msg["content"]})
+    
+    messages.append({
+        "role": "user",
+        "content": f"Context from research papers:\n{context}\n\nQuestion: {question}"
+    })
+    
     response = client.chat.completions.create(
         model="deepseek-chat",
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
+        messages=messages,
         temperature=0.3
     )
     

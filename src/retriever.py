@@ -12,7 +12,7 @@ def load_vectorstore(persist_dir: str = "./chroma_db"):
     )
     return vectorstore
 
-def retrieve_chunks(question: str, vectorstore, k: int = 5):
+def retrieve_chunks(question: str, vectorstore, k: int = 10):
     """检索最相关的k个论文片段"""
     chunks = vectorstore.similarity_search(question, k=k)
     return chunks
